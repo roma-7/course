@@ -1,16 +1,60 @@
 from .permissions import IsOwnerOrReadOnly, IsAuthenticatedOrReadOnly
 from .serializers import *
 from rest_framework import viewsets, generics
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework import status
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import CourseFilter
 from .permissions import *
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+class RegisterView(generics.CreateAPIView):
+    serializer_class = ProfileSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class CustomLoginView(TokenObtainPairView):
+    serializer_class = LoginSerializers
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except Exception:
+            return Response({"detail: Неверные учетные данные"}, status=status.HTTP_401_UNAUTHORIZED)
+
+        user = serializer.validated_data
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class LogoutView(generics.GenericAPIView):
+    serializer_class = LogoutSerializer
+
+    def post(self, request, *args, **kwargs):
+        refresh_token = request.data.get("refresh")
+        if not refresh_token:
+            return Response({"detail": "Refresh токен отсутствует."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            return Response({"detail": "Вы вышли из системы."}, status=status.HTTP_205_RESET_CONTENT)
+        except Exception as e:
+            return Response({"detail": "Ошибка обработки токена."}, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    permission_classes = [CheckOwner]
 
 
 class CategoryViewSet(viewsets.ModelViewSet):

@@ -30,5 +30,8 @@ urlpatterns = [
     path('course/<int:pk>', CourseDetailAPIView.as_view(), name='course_detail'),
     path('courses/create/', CreateCourseAPIView.as_view(), name='create_course'),
     path('courses/<int:id>/update/', UpdateCourseAPIView.as_view(), name='update_course'),
+    path('register/', RegisterView.as_view(), name='register'),
+    path('login/', CustomLoginView.as_view(), name='login'),
+    path('logout/', LogoutView.as_view(), name='logout'),
 ]
 
